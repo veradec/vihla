@@ -34,13 +34,13 @@ A lightweight native Android wrapper for Academia.edu, built with Kotlin to deli
 ## ⬇️ Installation
 
 ### From Releases
-1. Download the latest APK from [Releases](https://github.com/yourusername/vihla/releases)
+1. Download the latest APK from [Releases](https://github.com/veradec/vihla/releases)
 2. Enable "Install unknown apps" for your browser/file manager
 3. Install the downloaded APK
 
 ### From Source
 ```bash
-git clone https://github.com/yourusername/vihla.git
+git clone https://github.com/veradec/vihla.git
 cd vihla
 ./gradlew assembleDebug
 ```
