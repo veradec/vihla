@@ -1,7 +1,7 @@
 # Gradle
 .gradle/
 /build/
-.DS_Store
+build/
 
 # Android
 /local.properties
@@ -11,10 +11,12 @@
 .externalNativeBuild/
 .cxx/
 /app/build/
+*.aab
+*.apk
+output-metadata.json
 
 # Local configuration
 *.iml
-.gradle/
 .idea/workspace.xml
 .idea/libraries/
 .idea/navEditor.xml
@@ -31,9 +33,15 @@
 .idea/dictionaries/
 .idea/scopes/
 .idea/uiDesigner.xml
-.idea/libraries/
 .idea/deploymentTargetSelector.xml
 .idea/runConfigurations.xml
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+
+# Log/OS Files
+*.log
+.DS_Store
 
 # Keystore files
 *.jks
@@ -50,3 +58,9 @@ crashlytics-build.properties
 
 # Fabric
 fabric.properties
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Android Profiling
+*.hprof
