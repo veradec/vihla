@@ -1,0 +1,52 @@
+# Gradle
+.gradle/
+/build/
+.DS_Store
+
+# Android
+/local.properties
+.idea/
+.kotlin/
+/captures/
+.externalNativeBuild/
+.cxx/
+/app/build/
+
+# Local configuration
+*.iml
+.gradle/
+.idea/workspace.xml
+.idea/libraries/
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/modules.xml
+.idea/codeStyles/
+.idea/gradle.xml
+.idea/caches/
+.idea/compiler.xml
+.idea/encodings.xml
+.idea/jarRepositories.xml
+.idea/vcs.xml
+.idea/copyright/
+.idea/dictionaries/
+.idea/scopes/
+.idea/uiDesigner.xml
+.idea/libraries/
+.idea/deploymentTargetSelector.xml
+.idea/runConfigurations.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# Crashlytics
+crashlytics-build.properties
+
+# AVD
+.android/avd/
+
+# NDK
+.ndk/
+
+# Fabric
+fabric.properties
