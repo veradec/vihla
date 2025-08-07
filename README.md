@@ -45,6 +45,13 @@ cd vihla
 ./gradlew assembleDebug
 ```
 
+## 🗺️ Roadmap
+
+- **Google Classroom Integration**: Sync assignments, grades, and announcements.
+- **Student Portal Integration**: Access student portal features.
+- **Attendance Insights**: Set required attendance margins and receive alerts.
+- **Class Notifications**: Get timely reminders for each class with attendance status.
+
 ## 🙏 Acknowledgements
 
 This project is a Kotlin rewrite of the original [SRM Academia API](https://github.com/jackwaghan/srm-academia-api) by [Jack Waghan](https://github.com/jackwaghan). 
