@@ -24,7 +24,7 @@ jobs:
 
   release:
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -54,15 +54,22 @@ jobs:
         NEW_PATCH=$((PATCH + 1))
         echo "NEW_VERSION=v$MAJOR.$MINOR.$NEW_PATCH" >> $GITHUB_ENV
         echo "APK_NAME=vihla-release-unsigned-$MAJOR.$MINOR.$NEW_PATCH.apk" >> $GITHUB_ENV
+        echo "RELEASE_TITLE=Release Version $MAJOR.$MINOR.$NEW_PATCH" >> $GITHUB_ENV
 
-    - name: Rename APK
+    - name: Verify and Rename APK
       run: |
-        mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/${{ env.APK_NAME }}
+        if [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+          mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/${{ env.APK_NAME }}
+        else
+          echo "APK not found at app/build/outputs/apk/release/app-release-unsigned.apk"
+          ls -R app/build/outputs/apk/
+          exit 1
+        fi
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.NEW_VERSION }}
-        name: Release Version ${{ env.NEW_VERSION#v }}
+        name: ${{ env.RELEASE_TITLE }}
         files: |
           app/build/outputs/apk/release/${{ env.APK_NAME }}
