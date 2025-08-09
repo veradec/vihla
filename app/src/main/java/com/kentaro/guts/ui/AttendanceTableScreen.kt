@@ -394,7 +394,7 @@ private fun AttendanceRowCard(
                     horizontalArrangement = Arrangement.End
                 ) {
                     Text(
-                        text = "Need $classesNeededFor75 more class${if (classesNeededFor75 == 1) "" else "es"} for 75%",
+                        text = "need: $classesNeededFor75",
                         fontSize = 9.sp,
                         color = Color(0xFFFF9800), // Orange
                         fontWeight = FontWeight.Medium
@@ -407,7 +407,7 @@ private fun AttendanceRowCard(
                     horizontalArrangement = Arrangement.End
                 ) {
                     Text(
-                        text = "$marginFor75 Margin till you get to 75%",
+                        text = "margin: $marginFor75",
                         fontSize = 9.sp,
                         color = Color(0xFF8BC34A), // Green
                         fontWeight = FontWeight.Medium
@@ -516,7 +516,7 @@ private fun AttendanceRow(attendance: AttendanceDetail) {
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = "Need $classesNeededFor75 more class${if (classesNeededFor75 == 1) "" else "es"} for 75%",
+                    text = "Need $classesNeededFor75 more class${if (classesNeededFor75 == 1) "" else "es"}",
                     fontSize = 9.sp,
                     color = Color(0xFFFF9800), // Orange
                     fontWeight = FontWeight.Medium
@@ -529,7 +529,7 @@ private fun AttendanceRow(attendance: AttendanceDetail) {
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = "$marginFor75 Margin till you get to 75%",
+                    text = "$marginFor75 Margin",
                     fontSize = 9.sp,
                     color = Color(0xFF8BC34A), // Green
                     fontWeight = FontWeight.Medium

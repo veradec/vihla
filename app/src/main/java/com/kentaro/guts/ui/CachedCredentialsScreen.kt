@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import com.kentaro.guts.ui.theme.GoogleSansCodeFont
 import androidx.compose.ui.text.font.FontWeight
@@ -129,62 +130,42 @@ fun CachedCredentialsScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Action buttons
-            Row(
+            // Attendance target selector
+            val context = LocalContext.current
+            val prefs = remember { context.getSharedPreferences("auth_cache", android.content.Context.MODE_PRIVATE) }
+            var targetPercent by remember {
+                mutableStateOf(prefs.getInt("attendance_target_percent", 75))
+            }
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             ) {
-                Button(
-                    onClick = onShowAttendance,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Target attendance: $targetPercent%",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                ) {
-                    Text("Attendance", fontSize = 12.sp)
-                }
-                
-                Button(
-                    onClick = onShowCourse,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Slider(
+                        value = targetPercent.toFloat(),
+                        onValueChange = { v -> targetPercent = v.toInt() },
+                        valueRange = 50f..100f,
+                        steps = 50, // 1% steps between 50 and 100
+                        onValueChangeFinished = {
+                            prefs.edit().putInt("attendance_target_percent", targetPercent).apply()
+                        }
                     )
-                ) {
-                    Text("Courses", fontSize = 12.sp)
+                    Text(
+                        text = "This will be used to compute classes needed and margin.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onShowCalendar,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("Calendar", fontSize = 12.sp)
-                }
-                
-                Button(
-                    onClick = onShowMarks,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("Marks", fontSize = 12.sp)
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Notifications removed for now
-            
-            Spacer(modifier = Modifier.height(16.dp))
             
             // Logout button
             Button(
