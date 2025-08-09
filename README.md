@@ -1,9 +1,9 @@
 <p align="center">
   <img src="app-icon.png" alt="Vihla Icon" width="120"/>
-  <h1 align="center">Vihla: An Academia Wrapper</h1>
+  <h1 align="center">Vihla: An SRM Academia Wrapper</h1>
 </p>
 
-A lightweight native Android wrapper for Academia.edu, built with Kotlin to deliver a faster, cleaner mobile experience while preserving all academic functionality.  
+A lightweight native Android wrapper for academia.srmist.edu.in, built with Kotlin to deliver a faster, cleaner mobile experience while preserving all academic functionality.  
 
 ## ✨ Features
 
