@@ -1,6 +1,5 @@
 package com.kentaro.guts.ui
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,12 +7,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import com.kentaro.guts.ui.theme.GoogleSansCodeFont
@@ -27,8 +24,7 @@ import com.kentaro.guts.data.CachedCredentials
 import com.kentaro.guts.data.ParsedAttendanceResult
 import com.kentaro.guts.data.TableData
 import com.kentaro.guts.repository.AuthRepository
-import com.kentaro.guts.service.ClassNotificationService
-import com.kentaro.guts.service.NotificationDataManager
+// Notifications removed for now
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -186,8 +182,7 @@ fun CachedCredentialsScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Notification toggle
-            NotificationToggleCard()
+            // Notifications removed for now
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -338,69 +333,4 @@ private fun StudentInfoRow(
     }
 }
 
-@Composable
-private fun NotificationToggleCard() {
-    var notificationsEnabled by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "Class Notifications",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Get notified 10 minutes before each class",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-            
-            Switch(
-                checked = notificationsEnabled,
-                onCheckedChange = { enabled ->
-                    notificationsEnabled = enabled
-                    if (enabled) {
-                        // Enable notifications
-                        try {
-                            if (NotificationDataManager.hasData() && !ClassNotificationService.isRunning()) {
-                                ClassNotificationService.startService(context)
-                            }
-                        } catch (e: Exception) {
-                            Log.e("CachedCredentialsScreen", "Failed to start notification service: ${e.message}")
-                        }
-                    } else {
-                        // Disable notifications
-                        try {
-                            ClassNotificationService.stopService(context)
-                        } catch (e: Exception) {
-                            Log.e("CachedCredentialsScreen", "Failed to stop notification service: ${e.message}")
-                        }
-                    }
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            )
-        }
-    }
-} 
+// Notifications removed: toggle omitted

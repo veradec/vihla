@@ -17,8 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.kentaro.guts.service.ClassNotificationService
-import com.kentaro.guts.service.NotificationDataManager
+// Notifications removed for now
 import com.kentaro.guts.ui.AttendanceTableScreen
 import com.kentaro.guts.ui.CachedCredentialsScreen
 import com.kentaro.guts.ui.InitialSetupScreen
@@ -40,21 +39,13 @@ import com.kentaro.guts.ui.TimetableScreen
 
 class MainActivity : ComponentActivity() {
     
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            // Permission granted, start notification service
-            startNotificationService()
-        }
-    }
+    // Notifications removed: no permission flow needed
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Request notification permission on app start
-        requestNotificationPermission()
+        // Notifications removed for now
         
         setContent {
             GutsTheme {
@@ -69,14 +60,7 @@ class MainActivity : ComponentActivity() {
                     println("DEBUG: Bottom Nav - hasCachedCredentials: ${state.hasCachedCredentials}, isInitialSetup: ${state.isInitialSetup}, currentRoute: ${state.currentBottomNavRoute}")
                 }
                 
-                // Start notification service when timetable data is available
-                LaunchedEffect(state.parsedTimetable, state.courseData) {
-                    if (state.parsedTimetable != null && state.courseData != null) {
-                        // Update the data manager with current timetable data
-                        NotificationDataManager.setTimetableData(state.parsedTimetable, state.courseData)
-                        startNotificationService()
-                    }
-                }
+                // Notifications removed for now
                 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -225,45 +209,5 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            when {
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    // Permission already granted
-                    startNotificationService()
-                }
-                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
-                    // Show rationale if needed
-                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                else -> {
-                    // Request permission
-                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            }
-        } else {
-            // For older Android versions, notification permission is granted by default
-            startNotificationService()
-        }
-    }
-    
-    private fun startNotificationService() {
-        try {
-            if (NotificationDataManager.hasData() && !ClassNotificationService.isRunning()) {
-                // Start the notification service
-                ClassNotificationService.startService(this)
-            }
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Failed to start notification service: ${e.message}")
-        }
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        // Stop the notification service when the app is destroyed
-        ClassNotificationService.stopService(this)
-    }
+    // Notifications removed for now
 }
