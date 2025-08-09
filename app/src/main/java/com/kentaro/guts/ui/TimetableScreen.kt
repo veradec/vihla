@@ -25,14 +25,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kentaro.guts.data.TimetableResponse
+import com.kentaro.guts.data.ParsedCalendarResult
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun TimetableScreen(
     parsedTimetable: TimetableResponse?,
     courseData: String? = null,
+    parsedCalendarData: ParsedCalendarResult? = null,
     modifier: Modifier = Modifier
 ) {
     var currentDayOrderIndex by remember { mutableStateOf(0) }
@@ -62,6 +67,22 @@ fun TimetableScreen(
             
             parseTimetableData(tables)
         } ?: emptyList()
+        
+        // Determine today's day order from the parsed calendar and set the initial index
+        LaunchedEffect(timetableData, parsedCalendarData) {
+            if (timetableData.isNotEmpty()) {
+                val todayOrder = getTodayDayOrderFromCalendar(parsedCalendarData)
+                if (todayOrder != null) {
+                    val idx = timetableData.indexOfFirst { it.dayOrder == todayOrder }
+                    if (idx >= 0) {
+                        currentDayOrderIndex = idx
+                    } else {
+                        val fallbackIdx = (todayOrder - 1).coerceIn(0, timetableData.size - 1)
+                        currentDayOrderIndex = fallbackIdx
+                    }
+                }
+            }
+        }
         
         // Parse course data and create slot mapping
         val slotToCourseMapping = parseCourseDataAndCreateMapping(courseData)
@@ -95,6 +116,38 @@ fun TimetableScreen(
             Text("No HTML tables available.")
         }
     }
+}
+
+fun getTodayDayOrderFromCalendar(parsedCalendarData: ParsedCalendarResult?): Int? {
+    val months = parsedCalendarData?.months ?: return null
+    if (months.isEmpty()) return null
+    val today = java.time.LocalDate.now()
+    val dayStr = today.dayOfMonth.toString()
+    val currentMonthShort = today.month.getDisplayName(
+        java.time.format.TextStyle.SHORT,
+        java.util.Locale.ENGLISH
+    ).take(3)
+    val currentYearFull = today.year.toString()
+    val currentYearShort = currentYearFull.takeLast(2)
+
+    // Try to find matching month
+    val month = months.firstOrNull { m ->
+        val name = m.month
+        name.contains(currentMonthShort, ignoreCase = true) &&
+            (name.contains(currentYearFull) || name.contains("'$currentYearShort"))
+    } ?: months.firstOrNull { m ->
+        m.month.contains(currentMonthShort, ignoreCase = true)
+    } ?: months.firstOrNull() ?: return null
+
+    val dayData = month.days.firstOrNull { it.date == dayStr } ?: return null
+    val orderText = dayData.dayOrder.trim()
+    if (orderText.isEmpty() || orderText == "-") {
+        return 1
+    }
+    val match = Regex("(\\d+)").find(orderText)
+    val parsed = match?.groupValues?.get(1)?.toIntOrNull() ?: 1
+    // Clamp to 1..5 since there are only 5 day orders
+    return parsed.coerceIn(1, 5)
 }
 
 @Composable
@@ -246,23 +299,8 @@ fun logDayOrdersToLogcat(dayOrders: List<String>, tables: List<TableData>) {
     Log.d("TIMETABLE_DEBUG", "Day Orders Found: ${dayOrders.joinToString(", ")}")
     Log.d("TIMETABLE_DEBUG", "Total Day Orders: ${dayOrders.size}")
     Log.d("TIMETABLE_DEBUG", "")
-    
-    Log.d("TIMETABLE_DEBUG", "=== SAMPLE TABLE DATA ===")
-    tables.take(3).forEachIndexed { tableIndex, table ->
-        val sampleCells = table.rows.take(2).flatMap { it.cells }.take(5)
-        Log.d("TIMETABLE_DEBUG", "Table ${table.index}: ${sampleCells.joinToString(" | ")}")
-    }
+     
     Log.d("TIMETABLE_DEBUG", "")
-    
-    Log.d("TIMETABLE_DEBUG", "=== ALL TABLE CELLS (for copy-paste) ===")
-    tables.forEachIndexed { tableIndex, table ->
-        Log.d("TIMETABLE_DEBUG", "--- Table ${table.index} ---")
-        table.rows.forEachIndexed { rowIndex, row ->
-            Log.d("TIMETABLE_DEBUG", "Row $rowIndex: ${row.cells.joinToString(" | ")}")
-        }
-        Log.d("TIMETABLE_DEBUG", "")
-    }
-    Log.d("TIMETABLE_DEBUG", "=== END DEBUG INFO ===")
 }
 
 @Composable
@@ -422,22 +460,69 @@ fun DayOrderSection(
     dayOrder: DayOrderData,
     slotToCourseMapping: Map<String, CourseInfo>
 ) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(dayOrder.timeSlots) { timeSlot ->
+    val removableEmptyTimes = remember { setOf("04:50 - 05:30", "05:30 - 06:10") }
+    val filteredSlots = remember(dayOrder.timeSlots, slotToCourseMapping) {
+        dayOrder.timeSlots.filter { ts ->
+            val isRemovableTime = removableEmptyTimes.contains(ts.time)
+            val hasCourse = slotToCourseMapping[ts.slot] != null
+            !(isRemovableTime && !hasCourse)
+        }
+    }
+
+    val currentTime = remember { LocalTime.now() }
+    val currentSlotIndex = remember(filteredSlots, currentTime) {
+        var idx = -1
+        filteredSlots.forEachIndexed { i, ts ->
+            val range = parseTimeRangeString(ts.time)
+            if (range != null) {
+                val (start, end) = range
+                if (!currentTime.isBefore(start) && currentTime.isBefore(end)) {
+                    idx = i
+                    return@forEachIndexed
+                }
+            }
+        }
+        idx
+    }
+
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(filteredSlots) { timeSlot ->
             TimeSlotCard(
                 timeSlot = timeSlot,
-                courseInfo = slotToCourseMapping[timeSlot.slot]
+                courseInfo = slotToCourseMapping[timeSlot.slot],
+                isCurrent = filteredSlots.indexOf(timeSlot) == currentSlotIndex
             )
         }
+    }
+}
+
+private fun parseTimeRangeString(timeString: String): Pair<LocalTime, LocalTime>? {
+    return try {
+        val parts = timeString.split("-").map { it.trim() }
+        if (parts.size != 2) return null
+        val fmts = listOf(
+            DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("H:mm", Locale.ENGLISH)
+        )
+        fun parseOne(s: String): LocalTime? {
+            for (f in fmts) {
+                try { return LocalTime.parse(s, f) } catch (_: Exception) {}
+            }
+            return null
+        }
+        val start = parseOne(parts[0])
+        val end = parseOne(parts[1])
+        if (start != null && end != null) start to end else null
+    } catch (_: Exception) {
+        null
     }
 }
 
 @Composable
 fun TimeSlotCard(
     timeSlot: TimeSlotData,
-    courseInfo: CourseInfo? = null
+    courseInfo: CourseInfo? = null,
+    isCurrent: Boolean = false
 ) {
     val hasCourse = courseInfo != null
     val isEmptySlot = timeSlot.isAvailable && !hasCourse
@@ -446,6 +531,7 @@ fun TimeSlotCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = when {
+                isCurrent -> MaterialTheme.colorScheme.secondaryContainer
                 hasCourse -> MaterialTheme.colorScheme.surface
                 isEmptySlot -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 else -> MaterialTheme.colorScheme.surface

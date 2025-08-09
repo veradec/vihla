@@ -13,6 +13,7 @@ import com.kentaro.guts.data.PasswordValidationResult
 import com.kentaro.guts.data.UserValidationResult
 import com.kentaro.guts.data.AllTablesResult
 import com.kentaro.guts.data.TimetableResponse
+import android.util.Log
 import com.kentaro.guts.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -970,6 +971,13 @@ class LoginViewModel(private val context: Context) : ViewModel() {
             "attendance" -> {
                 println("DEBUG: Bottom nav - attendance route selected")
                 _state.value = _state.value.copy(showAttendanceTable = true)
+                // Log today's day order based on parsed calendar data
+                val todayOrder = com.kentaro.guts.ui.getTodayDayOrderFromCalendar(_state.value.parsedCalendarData)
+                if (todayOrder != null) {
+                    Log.d("ATTENDANCE_DEBUG", "Today's day order: $todayOrder")
+                } else {
+                    Log.d("ATTENDANCE_DEBUG", "Today's day order: not found (defaulting policy may apply)")
+                }
                 // Fetch attendance data if not already available
                 if (_state.value.parsedAttendanceData == null) {
                     println("DEBUG: No cached attendance data, fetching...")
@@ -987,6 +995,16 @@ class LoginViewModel(private val context: Context) : ViewModel() {
                     fetchCalendar()
                 } else {
                     println("DEBUG: Using cached calendar data")
+                    // Ensure parsed data exists; if missing, parse from cached raw HTML
+                    if (_state.value.parsedCalendarData == null) {
+                        try {
+                            val parsed = repository.parseCalendarString(_state.value.calendarData!!)
+                            _state.value = _state.value.copy(parsedCalendarData = parsed)
+                        } catch (e: Exception) {
+                            println("DEBUG: Failed to parse cached calendar data: ${e.message}")
+                            fetchCalendar()
+                        }
+                    }
                 }
             }
             "course" -> {
@@ -1003,6 +1021,24 @@ class LoginViewModel(private val context: Context) : ViewModel() {
                     fetchTimetable()
                 } else {
                     println("DEBUG: Using cached timetable data")
+                }
+
+                // Ensure parsed calendar data exists so timetable opens to today's day order
+                if (_state.value.parsedCalendarData == null) {
+                    val cachedCalendarHtml = _state.value.calendarData
+                    if (cachedCalendarHtml != null) {
+                        println("DEBUG: Parsing cached calendar for timetable day order...")
+                        try {
+                            val parsed = repository.parseCalendarString(cachedCalendarHtml)
+                            _state.value = _state.value.copy(parsedCalendarData = parsed)
+                        } catch (e: Exception) {
+                            println("DEBUG: Failed to parse cached calendar for timetable: ${e.message}")
+                        }
+                    } else {
+                        println("DEBUG: No calendar data available; fetching for timetable day order...")
+                        // Fire and forget fetch to populate parsedCalendarData; UI will update when done
+                        viewModelScope.launch { repository.fetchCalendar() }
+                    }
                 }
             }
             "marks" -> {

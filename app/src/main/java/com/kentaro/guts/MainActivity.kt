@@ -194,6 +194,7 @@ class MainActivity : ComponentActivity() {
                         TimetableScreen(
                             parsedTimetable = state.parsedTimetable,
                             courseData = state.courseData,
+                            parsedCalendarData = state.parsedCalendarData,
                             modifier = Modifier.padding(innerPadding)
                         )
                     }

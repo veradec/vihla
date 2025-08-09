@@ -3,6 +3,7 @@ package com.kentaro.guts.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -113,6 +114,30 @@ fun CalendarViewScreen(
         println("DEBUG: Selected month: ${currentMonth?.month}")
     }
 
+    // Remember list state for auto-scroll
+    val dayListState = rememberLazyListState()
+
+    // Auto-scroll to today's date when the current month changes or parsed data updates
+    LaunchedEffect(currentMonth?.month) {
+        val month = currentMonth ?: return@LaunchedEffect
+        val today = java.time.LocalDate.now().dayOfMonth
+        val targetIndex = month.days.indexOfFirst { day ->
+            day.date.toIntOrNull() == today
+        }
+        if (targetIndex >= 0) {
+            try {
+                dayListState.animateScrollToItem(targetIndex)
+                println("DEBUG: Auto-scrolled to today's index: $targetIndex")
+                val todaysDayOrder = month.days.getOrNull(targetIndex)?.dayOrder ?: ""
+                println("DEBUG: Today's day order at index $targetIndex: ${if (todaysDayOrder.isBlank()) "-" else todaysDayOrder}")
+            } catch (e: Exception) {
+                println("DEBUG: Failed to auto-scroll: ${e.message}")
+            }
+        } else {
+            println("DEBUG: Today's date not found in current month days")
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -182,7 +207,8 @@ fun CalendarViewScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 LazyColumn(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
+                    state = dayListState
                 ) {
                     if (currentMonth.days.isNotEmpty()) {
                         items(currentMonth.days.size) { index ->

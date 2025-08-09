@@ -991,6 +991,11 @@ class AuthRepository(private val context: Context? = null) {
             ParsedCalendarResult(error = "Failed to parse calendar: ${error.message}", status = 500)
         }
     }
+
+    // Public wrapper to parse calendar HTML from a raw string (for cached data)
+    fun parseCalendarString(html: String): ParsedCalendarResult {
+        return parseCalendar(html)
+    }
     
     // Extract calendar data from HTML document
     private fun extractCalendarData(doc: Document): ParsedCalendarResult {
@@ -1112,7 +1117,24 @@ class AuthRepository(private val context: Context? = null) {
                                         dayOrder = dayOrder
                                     )
                                     (monthData.days as MutableList).add(dayData)
-                                    logToFile("Added day data for ${monthData.month}: $date $day $event $dayOrder")
+                                    logToFile("Added day data for ${monthData.month}: $date $day  $dayOrder")
+                                    // Log today's day order only (not for every day)
+                                    run {
+                                        val today = java.time.LocalDate.now()
+                                        val todayDay = today.dayOfMonth.toString()
+                                        val currentMonthShort = today.month.getDisplayName(
+                                            java.time.format.TextStyle.SHORT,
+                                            java.util.Locale.ENGLISH
+                                        )
+                                        val currentYearFull = today.year.toString()
+                                        val currentYearShort = currentYearFull.takeLast(2)
+                                        val monthName = monthData.month
+                                        val isCurrentMonth = monthName.contains(currentMonthShort) &&
+                                                (monthName.contains(currentYearFull) || monthName.contains("'$currentYearShort"))
+                                        if (date == todayDay && isCurrentMonth) {
+                                            logToFile("Today's day order: $dayOrder")
+                                        }
+                                    }
                                 }
                             }
                         }
