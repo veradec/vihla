@@ -780,18 +780,14 @@ class AuthRepository(private val context: Context? = null) {
             val currentAttendance = present.toDouble() / total
             
             if (currentAttendance >= 0.75) {
-                // Calculate margin (classes you can miss)
-                // Formula: (present - 0.75 * total) / 0.25
-                val margin = ((present - 0.75 * total) / 0.25).toInt()
+                // Margin: max additional absences x such that present / (total + x) >= 0.75
+                // x <= (present - 0.75 * total) / 0.75
+                val margin = Math.floor((present - 0.75 * total) / 0.75).toInt()
                 "Margin [${maxOf(0, margin)}]"
             } else {
-                // Calculate classes needed
-                // We need to find how many more classes YOU need to attend to reach 75%
-                // Current: present out of total
-                // Target: 75% attendance
-                // Required: 0.75 * total classes attended
-                val requiredPresent = (0.75 * total).toInt()
-                val needed = maxOf(0, requiredPresent - present)
+                // Classes needed: min additional classes x such that (present + x) / (total + x) >= 0.75
+                // x >= (0.75 * total - present) / 0.25
+                val needed = Math.ceil((0.75 * total - present) / 0.25).toInt()
                 "Hours needed [${maxOf(1, needed)}]"
             }
         } catch (e: Exception) {
@@ -811,22 +807,12 @@ class AuthRepository(private val context: Context? = null) {
             val currentAttendance = present.toDouble() / totalClasses
             
             if (currentAttendance >= 0.75) {
-                // Calculate margin (classes you can miss)
-                // Formula: (present - 0.75 * total) / 0.25
-                val margin = ((present - 0.75 * totalClasses) / 0.25).toInt()
+                // Margin using corrected formula
+                val margin = Math.floor((present - 0.75 * totalClasses) / 0.75).toInt()
                 "Margin [${maxOf(0, margin)}]"
             } else {
-                // Calculate classes needed
-                // We need to find how many more classes to attend to reach 75%
-                // Let x be additional classes needed
-                // (present + x) / (total + x) >= 0.75
-                // present + x >= 0.75 * (total + x)
-                // present + x >= 0.75 * total + 0.75 * x
-                // present >= 0.75 * total + 0.75 * x - x
-                // present >= 0.75 * total - 0.25 * x
-                // 0.25 * x >= 0.75 * total - present
-                // x >= (0.75 * total - present) / 0.25
-                val needed = ((0.75 * totalClasses - present) / 0.25).toInt()
+                // Needed using corrected formula with ceiling
+                val needed = Math.ceil((0.75 * totalClasses - present) / 0.25).toInt()
                 "Hours needed [${maxOf(1, needed)}]"
             }
         } catch (e: Exception) {

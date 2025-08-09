@@ -97,49 +97,52 @@ data class AttendanceDetail(
 ) {
     // Calculate the number of classes needed to reach 75% attendance
     fun getClassesNeededFor75Percent(): Int {
-        val totalClasses = courseConducted + courseAbsent
-        val currentAttendance = courseConducted.toDouble() / totalClasses
-        
-        if (currentAttendance >= 0.75) {
-            return 0 // Already at or above 75%
-        }
-        
-        // Formula: (0.75 * (total + x) - conducted) / 0.25 = x
-        // Where x is the number of additional classes needed
-        // Simplified: x = (0.75 * total - conducted) / 0.25
-        val additionalClasses = ((0.75 * totalClasses - courseConducted) / 0.25).toInt()
-        
-        // Ensure we return at least 1 if calculation results in 0 or negative
-        return maxOf(1, additionalClasses)
+    if (courseConducted == 0) return 0 // No classes conducted yet
+    
+    val currentAttended = courseConducted - courseAbsent
+    val currentPercentage = currentAttended.toDouble() / courseConducted
+
+    if (currentPercentage >= 0.75) {
+        return 0 // Already at or above 75%
     }
+
+    // Formula: (currentAttended + x) / (courseConducted + x) ≥ 0.75
+    // Solving for x: x ≥ (0.75 * courseConducted - currentAttended) / 0.25
+    val additionalClasses = Math.ceil(
+        (0.75 * courseConducted - currentAttended) / 0.25
+    ).toInt()
+
+    return maxOf(1, additionalClasses)
+}
     
     // Calculate the margin (number of classes you can miss) when above 75%
     fun getMarginFor75Percent(): Int {
-        val totalClasses = courseConducted + courseAbsent
-        val currentAttendance = courseConducted.toDouble() / totalClasses
-        
-        if (currentAttendance < 0.75) {
-            return 0 // Below 75%, no margin
-        }
-        
-        // Calculate how many more absences are allowed while staying above 75%
-        // Formula: (conducted - 0.75 * (total + x)) / 0.25 = x
-        // Where x is the number of additional absences allowed
-        // Simplified: x = (conducted - 0.75 * total) / 0.25
-        val margin = ((courseConducted - 0.75 * totalClasses) / 0.25).toInt()
-        
-        return maxOf(0, margin)
+    if (courseConducted == 0) return 0
+    
+    val currentAttended = courseConducted - courseAbsent
+    val currentPercentage = currentAttended.toDouble() / courseConducted
+
+    if (currentPercentage < 0.75) {
+        return 0 // Below 75%, no margin
     }
+
+    // Formula: (currentAttended) / (courseConducted + x) ≥ 0.75
+    // Solving for x: x ≤ (currentAttended - 0.75 * courseConducted) / 0.75
+    val margin = Math.floor(
+        (currentAttended - 0.75 * courseConducted) / 0.75
+    ).toInt()
+
+    return maxOf(0, margin)
+}
     
     // Calculate current attendance percentage as double
     fun getCurrentAttendancePercentage(): Double {
-        val totalClasses = courseConducted + courseAbsent
-        return if (totalClasses > 0) {
-            (courseConducted.toDouble() / totalClasses) * 100
-        } else {
-            0.0
-        }
+    return if (courseConducted > 0) {
+        (courseConducted - courseAbsent).toDouble() / courseConducted * 100
+    } else {
+        0.0 // Avoid division by zero if no classes conducted
     }
+}
 }
 
 // New models for comprehensive table extraction

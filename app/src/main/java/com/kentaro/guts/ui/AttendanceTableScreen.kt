@@ -48,19 +48,20 @@ private fun calculateClassesNeededFor75Percent(conductedClasses: String, hoursAb
     return try {
         val conducted = conductedClasses.toInt()
         val absent = hoursAbsent.toInt()
-        val totalClasses = conducted + absent
         
-        if (totalClasses == 0) return 0
+        if (conducted == 0) return 0
         
-        val currentAttendance = conducted.toDouble() / totalClasses
+        val present = conducted - absent
+        val currentAttendance = present.toDouble() / conducted
         
         if (currentAttendance >= 0.75) {
             return 0 // Already at or above 75%
         }
         
-        // Formula: (0.75 * (total + x) - conducted) / 0.25 = x
-        // Where x is the number of additional classes needed
-        val additionalClasses = ((0.75 * totalClasses - conducted) / 0.25).toInt()
+        // (present + x) / (conducted + x) ≥ 0.75 → x ≥ (0.75*conducted - present) / 0.25
+        val additionalClasses = Math.ceil(
+            (0.75 * conducted - present) / 0.25
+        ).toInt()
         
         // Ensure we return at least 1 if calculation results in 0 or negative
         maxOf(1, additionalClasses)
@@ -74,20 +75,20 @@ private fun calculateMarginFor75Percent(conductedClasses: String, hoursAbsent: S
     return try {
         val conducted = conductedClasses.toInt()
         val absent = hoursAbsent.toInt()
-        val totalClasses = conducted + absent
         
-        if (totalClasses == 0) return 0
+        if (conducted == 0) return 0
         
-        val currentAttendance = conducted.toDouble() / totalClasses
+        val present = conducted - absent
+        val currentAttendance = present.toDouble() / conducted
         
         if (currentAttendance < 0.75) {
             return 0 // Below 75%, no margin
         }
         
-        // Calculate how many more absences are allowed while staying above 75%
-        // Formula: (conducted - 0.75 * total) / 0.25 = x
-        // Where x is the number of additional absences allowed
-        val margin = ((conducted - 0.75 * totalClasses) / 0.25).toInt()
+        // Max x such that present / (conducted + x) ≥ 0.75 → x ≤ (present - 0.75*conducted) / 0.75
+        val margin = Math.floor(
+            (present - 0.75 * conducted) / 0.75
+        ).toInt()
         
         maxOf(0, margin)
     } catch (e: Exception) {
