@@ -32,6 +32,10 @@ import org.jsoup.nodes.Element
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.platform.LocalContext
+import com.kentaro.guts.service.NotificationDataManager
+import kotlinx.coroutines.delay
 
 @Composable
 fun TimetableScreen(
@@ -88,6 +92,7 @@ fun TimetableScreen(
         val slotToCourseMapping = parseCourseDataAndCreateMapping(courseData)
         
         if (timetableData.isNotEmpty()) {
+            val context = LocalContext.current
             // Navigation header
             TimetableNavigationHeader(
                 currentDayOrderIndex = currentDayOrderIndex,
@@ -100,6 +105,16 @@ fun TimetableScreen(
                 onNext = {
                     if (currentDayOrderIndex < timetableData.size - 1) {
                         currentDayOrderIndex++
+                        // Send notification for the next slot
+                        val nextDayOrder = timetableData[currentDayOrderIndex]
+                        val firstSlot = nextDayOrder.timeSlots.firstOrNull()
+                        if (firstSlot != null) {
+                            NotificationDataManager.sendNextSlotNotification(
+                                context = context,
+                                slotTitle = firstSlot.slot,
+                                slotTime = firstSlot.time
+                            )
+                        }
                     }
                 }
             )
@@ -460,6 +475,7 @@ fun DayOrderSection(
     dayOrder: DayOrderData,
     slotToCourseMapping: Map<String, CourseInfo>
 ) {
+    val context = LocalContext.current
     val removableEmptyTimes = remember { setOf("04:50 - 05:30", "05:30 - 06:10") }
     val filteredSlots = remember(dayOrder.timeSlots, slotToCourseMapping) {
         dayOrder.timeSlots.filter { ts ->
@@ -469,7 +485,15 @@ fun DayOrderSection(
         }
     }
 
-    val currentTime = remember { LocalTime.now() }
+    var currentTime by remember { mutableStateOf(LocalTime.now()) }
+    // Periodically update currentTime every 30 seconds
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = LocalTime.now()
+            delay(30_000)
+        }
+    }
+
     val currentSlotIndex = remember(filteredSlots, currentTime) {
         var idx = -1
         filteredSlots.forEachIndexed { i, ts ->
@@ -485,7 +509,31 @@ fun DayOrderSection(
         idx
     }
 
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Track previous slot index to detect changes
+    var previousSlotIndex by remember { mutableStateOf(currentSlotIndex) }
+    LaunchedEffect(currentSlotIndex) {
+        if (previousSlotIndex != currentSlotIndex && currentSlotIndex >= 0 && currentSlotIndex < filteredSlots.size) {
+            val slot = filteredSlots[currentSlotIndex]
+            NotificationDataManager.sendNextSlotNotification(
+                context = context,
+                slotTitle = slot.slot,
+                slotTime = slot.time
+            )
+        }
+        previousSlotIndex = currentSlotIndex
+    }
+
+    val listState = rememberLazyListState()
+    LaunchedEffect(currentSlotIndex, filteredSlots) {
+        if (currentSlotIndex >= 0 && currentSlotIndex < filteredSlots.size) {
+            listState.scrollToItem(currentSlotIndex)
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         items(filteredSlots) { timeSlot ->
             TimeSlotCard(
                 timeSlot = timeSlot,

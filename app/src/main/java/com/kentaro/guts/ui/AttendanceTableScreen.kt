@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +42,35 @@ private fun formatAttendanceValue(attendance: String): String {
         // If parsing fails, return the original value
         attendance
     }
+}
+
+// Target helpers for dynamic attendance goal
+@Composable
+private fun getAttendanceTargetProbability(): Double {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("auth_cache", android.content.Context.MODE_PRIVATE)
+    val targetPercent = prefs.getInt("attendance_target_percent", 75)
+    return (targetPercent.coerceIn(1, 100)) / 100.0
+}
+
+private fun calculateClassesNeededForTarget(conducted: Int, absent: Int, target: Double): Int {
+    if (conducted == 0) return 0
+    val present = conducted - absent
+    val current = present.toDouble() / conducted
+    if (current >= target) return 0
+    val numerator = target * conducted - present
+    val denominator = 1 - target
+    val additional = Math.ceil(numerator / denominator).toInt()
+    return maxOf(1, additional)
+}
+
+private fun calculateMarginForTarget(conducted: Int, absent: Int, target: Double): Int {
+    if (conducted == 0) return 0
+    val present = conducted - absent
+    val current = present.toDouble() / conducted
+    if (current < target) return 0
+    val margin = Math.floor((present - target * conducted) / target).toInt()
+    return maxOf(0, margin)
 }
 
 // Utility function to calculate classes needed for 75% attendance
@@ -302,8 +332,13 @@ private fun AttendanceRowCard(
     hoursAbsent: String,
     attendance: String
 ) {
-    val classesNeededFor75 = calculateClassesNeededFor75Percent(conductedClasses, hoursAbsent)
-    val marginFor75 = calculateMarginFor75Percent(conductedClasses, hoursAbsent)
+    val target = getAttendanceTargetProbability()
+    val classesNeededFor75 = try {
+        calculateClassesNeededForTarget(conductedClasses.toInt(), hoursAbsent.toInt(), target)
+    } catch (e: Exception) { 0 }
+    val marginFor75 = try {
+        calculateMarginForTarget(conductedClasses.toInt(), hoursAbsent.toInt(), target)
+    } catch (e: Exception) { 0 }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -394,7 +429,7 @@ private fun AttendanceRowCard(
                     horizontalArrangement = Arrangement.End
                 ) {
                     Text(
-                        text = "need: $classesNeededFor75",
+                        text = "need $classesNeededFor75",
                         fontSize = 9.sp,
                         color = Color(0xFFFF9800), // Orange
                         fontWeight = FontWeight.Medium
@@ -407,7 +442,7 @@ private fun AttendanceRowCard(
                     horizontalArrangement = Arrangement.End
                 ) {
                     Text(
-                        text = "margin: $marginFor75",
+                        text = "margin $marginFor75",
                         fontSize = 9.sp,
                         color = Color(0xFF8BC34A), // Green
                         fontWeight = FontWeight.Medium
@@ -420,8 +455,9 @@ private fun AttendanceRowCard(
 
 @Composable
 private fun AttendanceRow(attendance: AttendanceDetail) {
-    val classesNeededFor75 = attendance.getClassesNeededFor75Percent()
-    val marginFor75 = attendance.getMarginFor75Percent()
+    val target = getAttendanceTargetProbability()
+    val classesNeededFor75 = calculateClassesNeededForTarget(attendance.courseConducted, attendance.courseAbsent, target)
+    val marginFor75 = calculateMarginForTarget(attendance.courseConducted, attendance.courseAbsent, target)
     
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -516,7 +552,7 @@ private fun AttendanceRow(attendance: AttendanceDetail) {
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = "Need $classesNeededFor75 more class${if (classesNeededFor75 == 1) "" else "es"}",
+                    text = "need $classesNeededFor75",
                     fontSize = 9.sp,
                     color = Color(0xFFFF9800), // Orange
                     fontWeight = FontWeight.Medium
@@ -529,7 +565,7 @@ private fun AttendanceRow(attendance: AttendanceDetail) {
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = "$marginFor75 Margin",
+                    text = "margin $marginFor75",
                     fontSize = 9.sp,
                     color = Color(0xFF8BC34A), // Green
                     fontWeight = FontWeight.Medium

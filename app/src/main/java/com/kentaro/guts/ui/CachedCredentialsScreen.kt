@@ -152,9 +152,13 @@ fun CachedCredentialsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Slider(
                         value = targetPercent.toFloat(),
-                        onValueChange = { v -> targetPercent = v.toInt() },
-                        valueRange = 50f..100f,
-                        steps = 50, // 1% steps between 50 and 100
+                        onValueChange = { v ->
+                            // Snap to nearest 5 within 75..100
+                            val snapped = (v / 5f).toInt() * 5
+                            targetPercent = snapped.coerceIn(75, 100)
+                        },
+                        valueRange = 75f..100f,
+                        steps = ((100 - 75) / 5) - 1, // discrete ticks every 5%
                         onValueChangeFinished = {
                             prefs.edit().putInt("attendance_target_percent", targetPercent).apply()
                         }
