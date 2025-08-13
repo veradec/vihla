@@ -36,6 +36,80 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.platform.LocalContext
 import com.kentaro.guts.service.NotificationDataManager
 import kotlinx.coroutines.delay
+import android.content.Context
+
+// Helper function to extract start time from time range
+private fun extractStartTime(timeString: String): String {
+    return timeString.split("-").firstOrNull()?.trim() ?: timeString
+}
+
+// Helper function to parse time range string like "08:00 - 08:50"
+private fun parseTimeRangeString(timeString: String): Pair<java.time.LocalTime, java.time.LocalTime>? {
+    return try {
+        val parts = timeString.split("-").map { it.trim() }
+        if (parts.size == 2) {
+            val startTime = java.time.LocalTime.parse(parts[0])
+            val endTime = java.time.LocalTime.parse(parts[1])
+            Pair(startTime, endTime)
+        } else {
+            null
+        }
+    } catch (e: Exception) {
+        Log.w("TimetableScreen", "Failed to parse time range: $timeString", e)
+        null
+    }
+}
+
+// Function to send notification for current slot or "Classes are over"
+private fun sendCurrentSlotNotification(
+    context: Context,
+    currentDayOrder: DayOrderData,
+    slotToCourseMapping: Map<String, CourseInfo>
+) {
+    val currentTime = java.time.LocalTime.now()
+    var foundCurrentSlot = false
+    
+    Log.d("TimetableScreen", "Checking current time: $currentTime")
+    
+    // Find the current or next slot based on time
+    for ((index, slot) in currentDayOrder.timeSlots.withIndex()) {
+        if (slot.isAvailable && slot.slot.isNotEmpty()) {
+            val courseInfo = slotToCourseMapping[slot.slot]
+            if (courseInfo != null) {
+                // Parse the slot time to compare with current time
+                val timeRange = parseTimeRangeString(slot.time)
+                if (timeRange != null) {
+                    val (startTime, endTime) = timeRange
+                    Log.d("TimetableScreen", "Checking slot $index: ${courseInfo.courseTitle} at $startTime-$endTime")
+                    
+                    // Check if this is the current or next slot
+                    if (currentTime.isBefore(endTime)) {
+                        // This is the current or next slot
+                        val startTimeStr = extractStartTime(slot.time)
+                        Log.d("TimetableScreen", "Found current/next slot: ${courseInfo.courseTitle} at $startTimeStr")
+                        
+                        NotificationDataManager.sendNextSlotNotification(
+                            context = context,
+                            slotTitle = courseInfo.courseTitle,
+                            slotTime = startTimeStr
+                        )
+                        foundCurrentSlot = true
+                        break
+                    }
+                }
+            }
+        }
+    }
+    
+    if (!foundCurrentSlot) {
+        Log.d("TimetableScreen", "No more classes today - sending 'Classes are over' notification")
+        NotificationDataManager.sendNextSlotNotification(
+            context = context,
+            slotTitle = "Classes are over",
+            slotTime = "for today"
+        )
+    }
+}
 
 @Composable
 fun TimetableScreen(
@@ -45,6 +119,7 @@ fun TimetableScreen(
     modifier: Modifier = Modifier
 ) {
     var currentDayOrderIndex by remember { mutableStateOf(0) }
+    val context = LocalContext.current
     
     Column(
         modifier = modifier
@@ -91,8 +166,19 @@ fun TimetableScreen(
         // Parse course data and create slot mapping
         val slotToCourseMapping = parseCourseDataAndCreateMapping(courseData)
         
+        // Debug logging for slot mapping
+        Log.d("TimetableScreen", "Slot to course mapping: $slotToCourseMapping")
+        Log.d("TimetableScreen", "Available slots: ${slotToCourseMapping.keys.joinToString()}")
+        
+        // Send notification for current slot when screen is first displayed
+        LaunchedEffect(timetableData, currentDayOrderIndex) {
+            if (timetableData.isNotEmpty()) {
+                val currentDayOrder = timetableData[currentDayOrderIndex]
+                sendCurrentSlotNotification(context, currentDayOrder, slotToCourseMapping)
+            }
+        }
+        
         if (timetableData.isNotEmpty()) {
-            val context = LocalContext.current
             // Navigation header
             TimetableNavigationHeader(
                 currentDayOrderIndex = currentDayOrderIndex,
@@ -107,13 +193,49 @@ fun TimetableScreen(
                         currentDayOrderIndex++
                         // Send notification for the next slot
                         val nextDayOrder = timetableData[currentDayOrderIndex]
-                        val firstSlot = nextDayOrder.timeSlots.firstOrNull()
-                        if (firstSlot != null) {
+                        var firstSlotWithCourse: TimeSlotData? = null
+                        var courseInfo: CourseInfo? = null
+                        
+                        Log.d("TimetableScreen", "Searching for first slot with course in day order ${currentDayOrderIndex + 1}")
+                        
+                        // Iterate through slots until we find one with a course
+                        for ((index, slot) in nextDayOrder.timeSlots.withIndex()) {
+                            Log.d("TimetableScreen", "Checking slot $index: slot='${slot.slot}', time='${slot.time}', isAvailable=${slot.isAvailable}")
+                            
+                            if (slot.isAvailable && slot.slot.isNotEmpty()) {
+                                val tempCourseInfo = slotToCourseMapping[slot.slot]
+                                Log.d("TimetableScreen", "Slot $index has content, course info: $tempCourseInfo")
+                                
+                                if (tempCourseInfo != null) {
+                                    firstSlotWithCourse = slot
+                                    courseInfo = tempCourseInfo
+                                    Log.d("TimetableScreen", "Found first slot with course at index $index: '${tempCourseInfo.courseTitle}'")
+                                    break
+                                } else {
+                                    Log.d("TimetableScreen", "Slot $index has content but no course mapping")
+                                }
+                            } else {
+                                Log.d("TimetableScreen", "Slot $index is empty or unavailable")
+                            }
+                        }
+                        
+                        if (firstSlotWithCourse != null && courseInfo != null) {
+                            Log.d("TimetableScreen", "Found slot with course: slot='${firstSlotWithCourse.slot}', course='${courseInfo.courseTitle}', time='${firstSlotWithCourse.time}'")
+                            
+                            // Extract start time from time range (e.g., "08:00 - 08:50" -> "08:00")
+                            val startTime = extractStartTime(firstSlotWithCourse.time)
+                            Log.d("TimetableScreen", "Sending notification for next available course: '${courseInfo.courseTitle}' at time: '$startTime'")
+                            
                             NotificationDataManager.sendNextSlotNotification(
                                 context = context,
-                                slotTitle = firstSlot.slot,
-                                slotTime = firstSlot.time
+                                slotTitle = courseInfo.courseTitle,
+                                slotTime = startTime
                             )
+                            
+                            // Also send current slot notification for the new day order
+                            sendCurrentSlotNotification(context, nextDayOrder, slotToCourseMapping)
+                        } else {
+                            Log.d("TimetableScreen", "No slots with courses found in this day order")
                         }
                     }
                 }
@@ -513,12 +635,82 @@ fun DayOrderSection(
     var previousSlotIndex by remember { mutableStateOf(currentSlotIndex) }
     LaunchedEffect(currentSlotIndex) {
         if (previousSlotIndex != currentSlotIndex && currentSlotIndex >= 0 && currentSlotIndex < filteredSlots.size) {
-            val slot = filteredSlots[currentSlotIndex]
-            NotificationDataManager.sendNextSlotNotification(
-                context = context,
-                slotTitle = slot.slot,
-                slotTime = slot.time
-            )
+            val currentSlot = filteredSlots[currentSlotIndex]
+            Log.d("TimetableScreen", "Processing slot change: slot='${currentSlot.slot}', time='${currentSlot.time}', isAvailable=${currentSlot.isAvailable}")
+            
+            // Find the next slot with a course starting from current position
+            var nextSlotWithCourse: TimeSlotData? = null
+            var courseInfo: CourseInfo? = null
+            
+            Log.d("TimetableScreen", "Searching for next slot with course starting from current slot index $currentSlotIndex")
+            
+            // Start searching from current slot index
+            for (i in currentSlotIndex until filteredSlots.size) {
+                val slot = filteredSlots[i]
+                Log.d("TimetableScreen", "Checking slot $i: slot='${slot.slot}', time='${slot.time}', isAvailable=${slot.isAvailable}")
+                
+                if (slot.isAvailable && slot.slot.isNotEmpty()) {
+                    val tempCourseInfo = slotToCourseMapping[slot.slot]
+                    Log.d("TimetableScreen", "Slot $i has content, course info: $tempCourseInfo")
+                    
+                    if (tempCourseInfo != null) {
+                        nextSlotWithCourse = slot
+                        courseInfo = tempCourseInfo
+                        Log.d("TimetableScreen", "Found next slot with course at index $i: '${tempCourseInfo.courseTitle}'")
+                        break
+                    } else {
+                        Log.d("TimetableScreen", "Slot $i has content but no course mapping")
+                    }
+                } else {
+                    Log.d("TimetableScreen", "Slot $i is empty or unavailable")
+                }
+            }
+            
+            // If no course found after current slot, search from beginning
+            if (nextSlotWithCourse == null) {
+                Log.d("TimetableScreen", "No course found after current slot, searching from beginning")
+                for ((index, slot) in filteredSlots.withIndex()) {
+                    Log.d("TimetableScreen", "Checking slot $index from beginning: slot='${slot.slot}', time='${slot.time}', isAvailable=${slot.isAvailable}")
+                    
+                    if (slot.isAvailable && slot.slot.isNotEmpty()) {
+                        val tempCourseInfo = slotToCourseMapping[slot.slot]
+                        Log.d("TimetableScreen", "Slot $index has content, course info: $tempCourseInfo")
+                        
+                        if (tempCourseInfo != null) {
+                            nextSlotWithCourse = slot
+                            courseInfo = tempCourseInfo
+                            Log.d("TimetableScreen", "Found slot with course at index $index: '${tempCourseInfo.courseTitle}'")
+                            break
+                        } else {
+                            Log.d("TimetableScreen", "Slot $index has content but no course mapping")
+                        }
+                    } else {
+                        Log.d("TimetableScreen", "Slot $index is empty or unavailable")
+                    }
+                }
+            }
+            
+            if (nextSlotWithCourse != null && courseInfo != null) {
+                Log.d("TimetableScreen", "Found next slot with course: slot='${nextSlotWithCourse.slot}', course='${courseInfo.courseTitle}', time='${nextSlotWithCourse.time}'")
+                
+                // Extract start time from time range (e.g., "08:00 - 08:50" -> "08:00")
+                val startTime = extractStartTime(nextSlotWithCourse.time)
+                Log.d("TimetableScreen", "Sending notification for next available course: '${courseInfo.courseTitle}' at time: '$startTime'")
+                
+                NotificationDataManager.sendNextSlotNotification(
+                    context = context,
+                    slotTitle = courseInfo.courseTitle,
+                    slotTime = startTime
+                )
+                
+                // Show persistent notification with course name
+                NotificationDataManager.showPersistentCourseNotification(
+                    context = context,
+                    courseName = courseInfo.courseTitle
+                )
+            } else {
+                Log.d("TimetableScreen", "No slots with courses found in filtered slots")
+            }
         }
         previousSlotIndex = currentSlotIndex
     }
@@ -544,27 +736,7 @@ fun DayOrderSection(
     }
 }
 
-private fun parseTimeRangeString(timeString: String): Pair<LocalTime, LocalTime>? {
-    return try {
-        val parts = timeString.split("-").map { it.trim() }
-        if (parts.size != 2) return null
-        val fmts = listOf(
-            DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH),
-            DateTimeFormatter.ofPattern("H:mm", Locale.ENGLISH)
-        )
-        fun parseOne(s: String): LocalTime? {
-            for (f in fmts) {
-                try { return LocalTime.parse(s, f) } catch (_: Exception) {}
-            }
-            return null
-        }
-        val start = parseOne(parts[0])
-        val end = parseOne(parts[1])
-        if (start != null && end != null) start to end else null
-    } catch (_: Exception) {
-        null
-    }
-}
+
 
 @Composable
 fun TimeSlotCard(

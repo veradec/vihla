@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,7 +30,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CachedCredentialsScreen(
+fun ProfileScreen(
     cachedCredentials: CachedCredentials?,
     onLogout: () -> Unit,
     onShowAttendance: () -> Unit = {},
@@ -46,6 +45,7 @@ fun CachedCredentialsScreen(
     modifier: Modifier = Modifier
 ) {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    val context = LocalContext.current
     
     Column(
         modifier = modifier
@@ -131,7 +131,6 @@ fun CachedCredentialsScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             // Attendance target selector
-            val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("auth_cache", android.content.Context.MODE_PRIVATE) }
             var targetPercent by remember {
                 mutableStateOf(prefs.getInt("attendance_target_percent", 75))
@@ -187,6 +186,7 @@ fun CachedCredentialsScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Logout")
             }
+            
             
             Spacer(modifier = Modifier.height(32.dp))
         } else {
@@ -319,3 +319,5 @@ private fun StudentInfoRow(
 }
 
 // Notifications removed: toggle omitted
+
+

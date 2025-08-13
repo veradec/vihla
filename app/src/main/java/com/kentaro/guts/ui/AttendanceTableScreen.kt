@@ -289,15 +289,7 @@ private fun AttendanceTableCard(tableData: TableData) {
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
-        ) {
-            // Table title
-            Text(
-                text = "Attendance",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
+        ) {            
             Spacer(modifier = Modifier.height(8.dp))
             
             // Display table data

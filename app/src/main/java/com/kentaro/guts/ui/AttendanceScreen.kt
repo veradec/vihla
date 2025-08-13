@@ -23,16 +23,6 @@ fun AttendanceScreen(
     modifier: Modifier = Modifier
 ) {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Attendance") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
         modifier = modifier
     ) { innerPadding ->
         LazyColumn(

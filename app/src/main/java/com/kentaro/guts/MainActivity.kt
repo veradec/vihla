@@ -19,7 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 // Notifications removed for now
 import com.kentaro.guts.ui.AttendanceTableScreen
-import com.kentaro.guts.ui.CachedCredentialsScreen
+import com.kentaro.guts.ui.ProfileScreen
 import com.kentaro.guts.ui.InitialSetupScreen
 import com.kentaro.guts.ui.LoginScreen
 import com.kentaro.guts.ui.CalendarCourseScreen
@@ -39,13 +39,22 @@ import com.kentaro.guts.ui.TimetableScreen
 
 class MainActivity : ComponentActivity() {
     
-    // Notifications removed: no permission flow needed
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Log.d("MainActivity", "Notification permission granted")
+        } else {
+            Log.w("MainActivity", "Notification permission denied")
+        }
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Notifications removed for now
+        // Check and request notification permission for Android 13+
+        checkNotificationPermission()
         
         setContent {
             GutsTheme {
@@ -164,7 +173,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     state.showCachedCredentials -> {
-                        CachedCredentialsScreen(
+                        ProfileScreen(
                             cachedCredentials = state.cachedCredentials,
                             onLogout = {
                                 loginViewModel.onEvent(LoginEvent.Logout)
@@ -211,4 +220,25 @@ class MainActivity : ComponentActivity() {
     }
     
     // Notifications removed for now
+    
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    Log.d("MainActivity", "Notification permission already granted")
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    Log.d("MainActivity", "Should show permission rationale")
+                    // You could show a dialog here explaining why notifications are needed
+                }
+                else -> {
+                    Log.d("MainActivity", "Requesting notification permission")
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
+    }
 }
