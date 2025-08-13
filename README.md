@@ -5,6 +5,10 @@
 
 A lightweight native Android wrapper for academia.srmist.edu.in, built with Kotlin to deliver a faster, cleaner mobile experience while preserving all academic functionality.  
 
+## Download
+
+You can download the latest APK from the [releases page](https://github.com/veradec/vihla/releases).
+
 ## ✨ Features
 
 - 🚀 Native Android interface optimized for Academia.edu
