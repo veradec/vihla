@@ -10,9 +10,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -125,6 +125,24 @@ fun TimetableScreen(
 ) {
     var currentDayOrderIndex by remember { mutableStateOf(0) }
     val context = LocalContext.current
+    
+    // State to track dimmed slots (slot identifier -> isDimmed)
+    var dimmedSlots by remember { mutableStateOf(mutableSetOf<String>()) }
+    
+    // Load dimmed slots from SharedPreferences on first launch
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("timetable_prefs", Context.MODE_PRIVATE)
+        val dimmedSlotsString = prefs.getString("dimmed_slots", "")
+        if (dimmedSlotsString?.isNotEmpty() == true) {
+            dimmedSlots = dimmedSlotsString.split(",").filter { it.isNotEmpty() }.toMutableSet()
+        }
+    }
+    
+    // Save dimmed slots to SharedPreferences whenever they change
+    LaunchedEffect(dimmedSlots) {
+        val prefs = context.getSharedPreferences("timetable_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("dimmed_slots", dimmedSlots.joinToString(",")).apply()
+    }
     
     Column(
         modifier = modifier
@@ -282,10 +300,12 @@ fun TimetableScreen(
                             androidx.compose.material3.TextButton(
                                 onClick = {
                                     // Clear only dimmed slots for current day order
-                                    val currentDayOrderSlots = filteredSlots.map { "${it.time}_${it.slot}" }.toSet()
-                                    dimmedSlots = dimmedSlots.filter { slotId -> 
+                                    val currentDayOrder = timetableData[currentDayOrderIndex]
+                                    val currentDayOrderSlots = currentDayOrder.timeSlots.map { "${it.time}_${it.slot}" }.toSet()
+                                    val newDimmedSlots = dimmedSlots.filter { slotId -> 
                                         !currentDayOrderSlots.contains(slotId) 
                                     }.toMutableSet()
+                                    dimmedSlots = newDimmedSlots
                                 }
                             ) {
                                 Text(
@@ -305,7 +325,11 @@ fun TimetableScreen(
             val currentDayOrder = timetableData[currentDayOrderIndex]
             DayOrderSection(
                 dayOrder = currentDayOrder,
-                slotToCourseMapping = slotToCourseMapping
+                slotToCourseMapping = slotToCourseMapping,
+                dimmedSlots = dimmedSlots,
+                onDimmedSlotsChange = { newDimmedSlots ->
+                    dimmedSlots = newDimmedSlots.toMutableSet()
+                }
             )
         } else {
             Text("No HTML tables available.")
@@ -516,7 +540,7 @@ fun TimetableNavigationHeader(
             enabled = currentDayOrderIndex > 0
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Previous Day Order",
                 tint = if (currentDayOrderIndex > 0) 
                     MaterialTheme.colorScheme.primary 
@@ -548,7 +572,7 @@ fun TimetableNavigationHeader(
             enabled = currentDayOrderIndex < totalDayOrders - 1
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "Next Day Order",
                 tint = if (currentDayOrderIndex < totalDayOrders - 1) 
                     MaterialTheme.colorScheme.primary 
@@ -653,28 +677,12 @@ fun parseCourseDataAndCreateMapping(courseData: String?): Map<String, CourseInfo
 @Composable
 fun DayOrderSection(
     dayOrder: DayOrderData,
-    slotToCourseMapping: Map<String, CourseInfo>
+    slotToCourseMapping: Map<String, CourseInfo>,
+    dimmedSlots: Set<String>,
+    onDimmedSlotsChange: (Set<String>) -> Unit
 ) {
     val context = LocalContext.current
     val removableEmptyTimes = remember { setOf("04:50 - 05:30", "05:30 - 06:10") }
-    
-    // State to track dimmed slots (slot identifier -> isDimmed)
-    var dimmedSlots by remember { mutableStateOf(mutableSetOf<String>()) }
-    
-    // Load dimmed slots from SharedPreferences on first launch
-    LaunchedEffect(Unit) {
-        val prefs = context.getSharedPreferences("timetable_prefs", Context.MODE_PRIVATE)
-        val dimmedSlotsString = prefs.getString("dimmed_slots", "")
-        if (dimmedSlotsString?.isNotEmpty() == true) {
-            dimmedSlots = dimmedSlotsString.split(",").filter { it.isNotEmpty() }.toMutableSet()
-        }
-    }
-    
-    // Save dimmed slots to SharedPreferences whenever they change
-    LaunchedEffect(dimmedSlots) {
-        val prefs = context.getSharedPreferences("timetable_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putString("dimmed_slots", dimmedSlots.joinToString(",")).apply()
-    }
     
     val filteredSlots = remember(dayOrder.timeSlots, slotToCourseMapping) {
         dayOrder.timeSlots.filter { ts ->
@@ -822,9 +830,9 @@ fun DayOrderSection(
                 onLongPress = { slot ->
                     val slotId = "${slot.time}_${slot.slot}"
                     if (dimmedSlots.contains(slotId)) {
-                        dimmedSlots = dimmedSlots.toMutableSet().apply { remove(slotId) }
+                        onDimmedSlotsChange(dimmedSlots.toMutableSet().apply { remove(slotId) })
                     } else {
-                        dimmedSlots = dimmedSlots.toMutableSet().apply { add(slotId) }
+                        onDimmedSlotsChange(dimmedSlots.toMutableSet().apply { add(slotId) })
                     }
                 }
             )
