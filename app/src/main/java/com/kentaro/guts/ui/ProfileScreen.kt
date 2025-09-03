@@ -133,7 +133,7 @@ fun ProfileScreen(
             // Attendance target selector
             val prefs = remember { context.getSharedPreferences("auth_cache", android.content.Context.MODE_PRIVATE) }
             var targetPercent by remember {
-                mutableStateOf(prefs.getInt("attendance_target_percent", 75))
+                mutableStateOf(prefs.getInt("attendance_target_percent", 65))
             }
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -152,12 +152,12 @@ fun ProfileScreen(
                     Slider(
                         value = targetPercent.toFloat(),
                         onValueChange = { v ->
-                            // Snap to nearest 5 within 75..100
+                            // Snap to nearest 5 within 65..100
                             val snapped = (v / 5f).toInt() * 5
-                            targetPercent = snapped.coerceIn(75, 100)
+                            targetPercent = snapped.coerceIn(65, 100)
                         },
-                        valueRange = 75f..100f,
-                        steps = ((100 - 75) / 5) - 1, // discrete ticks every 5%
+                        valueRange = 65f..100f,
+                        steps = ((100 - 65) / 5) - 1, // discrete ticks every 5%
                         onValueChangeFinished = {
                             prefs.edit().putInt("attendance_target_percent", targetPercent).apply()
                         }

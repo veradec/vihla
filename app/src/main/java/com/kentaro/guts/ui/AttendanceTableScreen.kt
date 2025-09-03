@@ -49,7 +49,7 @@ private fun formatAttendanceValue(attendance: String): String {
 private fun getAttendanceTargetProbability(): Double {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("auth_cache", android.content.Context.MODE_PRIVATE)
-    val targetPercent = prefs.getInt("attendance_target_percent", 75)
+    val targetPercent = prefs.getInt("attendance_target_percent", 65)
     return (targetPercent.coerceIn(1, 100)) / 100.0
 }
 

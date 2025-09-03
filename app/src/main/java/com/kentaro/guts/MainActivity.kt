@@ -53,6 +53,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        // Reset attendance target to 75% every time the app is launched
+        val prefs = getSharedPreferences("auth_cache", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putInt("attendance_target_percent", 75).apply()
+        
         // Check and request notification permission for Android 13+
         checkNotificationPermission()
         

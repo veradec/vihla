@@ -187,7 +187,7 @@ object DynamicUrl {
     }
     
     suspend fun timetableDynamicUrl(): String {
-        return "https://academia.srmist.edu.in/srm_university/academia-academic-services/page/Unified_Time_Table_2024_batch_2"
+        return "https://academia.srmist.edu.in/srm_university/academia-academic-services/page/Unified_Time_Table_2025_batch_2"
     }
 }
 

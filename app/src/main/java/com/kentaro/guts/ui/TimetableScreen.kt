@@ -2,6 +2,7 @@ package com.kentaro.guts.ui
 
 import android.util.Log
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,6 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
 import com.kentaro.guts.data.TimetableResponse
 import com.kentaro.guts.data.ParsedCalendarResult
 import org.jsoup.Jsoup
@@ -240,6 +245,59 @@ fun TimetableScreen(
                     }
                 }
             )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Help text for long-press functionality
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "💡 Long press any slot to dim it (50% opacity). Dimmed slots won't be counted for notifications.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    if (dimmedSlots.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "📊 ${dimmedSlots.size} slot(s) dimmed in this day order",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    // Clear only dimmed slots for current day order
+                                    val currentDayOrderSlots = filteredSlots.map { "${it.time}_${it.slot}" }.toSet()
+                                    dimmedSlots = dimmedSlots.filter { slotId -> 
+                                        !currentDayOrderSlots.contains(slotId) 
+                                    }.toMutableSet()
+                                }
+                            ) {
+                                Text(
+                                    text = "Clear",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -599,6 +657,25 @@ fun DayOrderSection(
 ) {
     val context = LocalContext.current
     val removableEmptyTimes = remember { setOf("04:50 - 05:30", "05:30 - 06:10") }
+    
+    // State to track dimmed slots (slot identifier -> isDimmed)
+    var dimmedSlots by remember { mutableStateOf(mutableSetOf<String>()) }
+    
+    // Load dimmed slots from SharedPreferences on first launch
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("timetable_prefs", Context.MODE_PRIVATE)
+        val dimmedSlotsString = prefs.getString("dimmed_slots", "")
+        if (dimmedSlotsString?.isNotEmpty() == true) {
+            dimmedSlots = dimmedSlotsString.split(",").filter { it.isNotEmpty() }.toMutableSet()
+        }
+    }
+    
+    // Save dimmed slots to SharedPreferences whenever they change
+    LaunchedEffect(dimmedSlots) {
+        val prefs = context.getSharedPreferences("timetable_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("dimmed_slots", dimmedSlots.joinToString(",")).apply()
+    }
+    
     val filteredSlots = remember(dayOrder.timeSlots, slotToCourseMapping) {
         dayOrder.timeSlots.filter { ts ->
             val isRemovableTime = removableEmptyTimes.contains(ts.time)
@@ -649,6 +726,11 @@ fun DayOrderSection(
                 val slot = filteredSlots[i]
                 Log.d("TimetableScreen", "Checking slot $i: slot='${slot.slot}', time='${slot.time}', isAvailable=${slot.isAvailable}")
                 
+                // Skip dimmed slots when looking for next course
+                if (dimmedSlots.contains("${slot.time}_${slot.slot}")) {
+                    continue
+                }
+                
                 if (slot.isAvailable && slot.slot.isNotEmpty()) {
                     val tempCourseInfo = slotToCourseMapping[slot.slot]
                     Log.d("TimetableScreen", "Slot $i has content, course info: $tempCourseInfo")
@@ -671,6 +753,11 @@ fun DayOrderSection(
                 Log.d("TimetableScreen", "No course found after current slot, searching from beginning")
                 for ((index, slot) in filteredSlots.withIndex()) {
                     Log.d("TimetableScreen", "Checking slot $index from beginning: slot='${slot.slot}', time='${slot.time}', isAvailable=${slot.isAvailable}")
+                    
+                    // Skip dimmed slots when looking for next course
+                    if (dimmedSlots.contains("${slot.time}_${slot.slot}")) {
+                        continue
+                    }
                     
                     if (slot.isAvailable && slot.slot.isNotEmpty()) {
                         val tempCourseInfo = slotToCourseMapping[slot.slot]
@@ -730,7 +817,16 @@ fun DayOrderSection(
             TimeSlotCard(
                 timeSlot = timeSlot,
                 courseInfo = slotToCourseMapping[timeSlot.slot],
-                isCurrent = filteredSlots.indexOf(timeSlot) == currentSlotIndex
+                isCurrent = filteredSlots.indexOf(timeSlot) == currentSlotIndex,
+                isDimmed = dimmedSlots.contains("${timeSlot.time}_${timeSlot.slot}"),
+                onLongPress = { slot ->
+                    val slotId = "${slot.time}_${slot.slot}"
+                    if (dimmedSlots.contains(slotId)) {
+                        dimmedSlots = dimmedSlots.toMutableSet().apply { remove(slotId) }
+                    } else {
+                        dimmedSlots = dimmedSlots.toMutableSet().apply { add(slotId) }
+                    }
+                }
             )
         }
     }
@@ -742,13 +838,22 @@ fun DayOrderSection(
 fun TimeSlotCard(
     timeSlot: TimeSlotData,
     courseInfo: CourseInfo? = null,
-    isCurrent: Boolean = false
+    isCurrent: Boolean = false,
+    isDimmed: Boolean = false,
+    onLongPress: (TimeSlotData) -> Unit = {}
 ) {
     val hasCourse = courseInfo != null
     val isEmptySlot = timeSlot.isAvailable && !hasCourse
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(alpha = if (isDimmed) 0.5f else 1.0f)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress(timeSlot) }
+                )
+            },
         colors = CardDefaults.cardColors(
             containerColor = when {
                 isCurrent -> MaterialTheme.colorScheme.secondaryContainer
@@ -758,7 +863,7 @@ fun TimeSlotCard(
             }
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = if (isDimmed) 1.dp else 2.dp
         )
     ) {
         Row(
@@ -776,7 +881,10 @@ fun TimeSlotCard(
                     text = timeSlot.time,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = if (isDimmed) 
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) 
+                    else 
+                        MaterialTheme.colorScheme.primary
                 )
                 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -786,11 +894,23 @@ fun TimeSlotCard(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = when {
+                        isDimmed -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         hasCourse -> MaterialTheme.colorScheme.onSurface
                         isEmptySlot -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
+                
+                // Show "DIM" indicator for dimmed slots
+                if (isDimmed) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "DIM",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                    )
+                }
             }
             
             // Course information if available
@@ -803,23 +923,32 @@ fun TimeSlotCard(
                         text = course.courseTitle,
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = if (isDimmed) 
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) 
+                        else 
+                            MaterialTheme.colorScheme.primary
                     )
                     
                     Text(
                         text = course.courseCode,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (isDimmed) 
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) 
+                        else 
+                            MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        textAlign = TextAlign.End
                     )
                     
                     Text(
                         text = course.courseFaculty,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isDimmed) 
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) 
+                        else 
+                            MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        textAlign = TextAlign.End
                     )
                 }
             }
