@@ -67,4 +67,4 @@ Key improvements in this version include:
 - Improved performance
 - Additional features specific to mobile usage
 
-We're grateful for the foundational work done on the original project that made this implementation possible.
+We're grateful for the foundational work done on the original project that made this implementation possible.<!-- chore: add proguard rules for release build [2025-12-01] -->
