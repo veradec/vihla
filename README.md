@@ -70,3 +70,4 @@ Key improvements in this version include:
 We're grateful for the foundational work done on the original project that made this implementation possible.<!-- chore: add proguard rules for release build [2025-12-01] -->
 <!-- feat: add attendance percentage calculation [2025-12-03] -->
 <!-- fix: attendance count off by one on first day [2025-12-03] -->
+<!-- refactor: move attendance logic into AttendanceUtil [2025-12-03] -->
