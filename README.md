@@ -72,3 +72,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- fix: attendance count off by one on first day [2025-12-03] -->
 <!-- refactor: move attendance logic into AttendanceUtil [2025-12-03] -->
 <!-- feat: add marks entry screen with subject list [2025-12-05] -->
+<!-- fix: marks screen not scrolling on small devices [2025-12-05] -->
