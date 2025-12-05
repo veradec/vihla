@@ -71,3 +71,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- feat: add attendance percentage calculation [2025-12-03] -->
 <!-- fix: attendance count off by one on first day [2025-12-03] -->
 <!-- refactor: move attendance logic into AttendanceUtil [2025-12-03] -->
+<!-- feat: add marks entry screen with subject list [2025-12-05] -->
