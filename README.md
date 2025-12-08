@@ -73,3 +73,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- refactor: move attendance logic into AttendanceUtil [2025-12-03] -->
 <!-- feat: add marks entry screen with subject list [2025-12-05] -->
 <!-- fix: marks screen not scrolling on small devices [2025-12-05] -->
+<!-- chore: update compileSdk to 35 in build.gradle [2025-12-08] -->
