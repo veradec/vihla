@@ -77,3 +77,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- feat: add timetable day highlight for current day [2025-12-10] -->
 <!-- fix: timetable highlight not updating at midnight [2025-12-10] -->
 <!-- refactor: extract timetable slot view into component [2025-12-10] -->
+<!-- chore: add placeholder for empty timetable state [2025-12-10] -->
