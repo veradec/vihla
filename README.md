@@ -80,3 +80,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- chore: add placeholder for empty timetable state [2025-12-10] -->
 <!-- feat: add profile screen with cached user details [2025-12-13] -->
 <!-- fix: profile image not loading from cache on reopen [2025-12-13] -->
+<!-- docs: update README with feature screenshots list [2025-12-16] -->
