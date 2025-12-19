@@ -82,3 +82,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- fix: profile image not loading from cache on reopen [2025-12-13] -->
 <!-- docs: update README with feature screenshots list [2025-12-16] -->
 <!-- feat: add course list with credit hours display [2025-12-19] -->
+<!-- fix: course list duplicating entries on refresh [2025-12-19] -->
