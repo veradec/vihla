@@ -83,3 +83,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- docs: update README with feature screenshots list [2025-12-16] -->
 <!-- feat: add course list with credit hours display [2025-12-19] -->
 <!-- fix: course list duplicating entries on refresh [2025-12-19] -->
+<!-- refactor: unify API response parsing into BaseRepo [2025-12-19] -->
