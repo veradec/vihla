@@ -84,3 +84,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- feat: add course list with credit hours display [2025-12-19] -->
 <!-- fix: course list duplicating entries on refresh [2025-12-19] -->
 <!-- refactor: unify API response parsing into BaseRepo [2025-12-19] -->
+<!-- chore: add string resources for all hardcoded text [2025-12-22] -->
