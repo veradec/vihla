@@ -87,3 +87,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- chore: add string resources for all hardcoded text [2025-12-22] -->
 <!-- fix: missing string resource causing crash on launch [2025-12-22] -->
 <!-- feat: add pull-to-refresh on marks and attendance screens [2025-12-27] -->
+<!-- fix: pull-to-refresh spinner not hiding after load [2026-01-03] -->
