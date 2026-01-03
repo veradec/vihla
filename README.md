@@ -89,3 +89,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- feat: add pull-to-refresh on marks and attendance screens [2025-12-27] -->
 <!-- fix: pull-to-refresh spinner not hiding after load [2026-01-03] -->
 <!-- refactor: consolidate refresh logic into BaseFragment [2026-01-03] -->
+<!-- chore: bump app version to 1.1.0 [2026-01-03] -->
