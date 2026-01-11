@@ -92,3 +92,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- chore: bump app version to 1.1.0 [2026-01-03] -->
 <!-- feat: add error snackbar for network failures [2026-01-07] -->
 <!-- fix: snackbar overlapping bottom nav bar [2026-01-07] -->
+<!-- chore: add fastlane metadata folder structure [2026-01-11] -->
