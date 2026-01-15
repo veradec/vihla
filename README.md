@@ -94,3 +94,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- fix: snackbar overlapping bottom nav bar [2026-01-07] -->
 <!-- chore: add fastlane metadata folder structure [2026-01-11] -->
 <!-- feat: add dark mode support with system theme follow [2026-01-15] -->
+<!-- fix: dark mode not applying to dialog backgrounds [2026-01-15] -->
