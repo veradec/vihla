@@ -93,3 +93,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- feat: add error snackbar for network failures [2026-01-07] -->
 <!-- fix: snackbar overlapping bottom nav bar [2026-01-07] -->
 <!-- chore: add fastlane metadata folder structure [2026-01-11] -->
+<!-- feat: add dark mode support with system theme follow [2026-01-15] -->
