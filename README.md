@@ -96,3 +96,4 @@ We're grateful for the foundational work done on the original project that made 
 <!-- feat: add dark mode support with system theme follow [2026-01-15] -->
 <!-- fix: dark mode not applying to dialog backgrounds [2026-01-15] -->
 <!-- refactor: move theme utils into ThemeManager singleton [2026-01-15] -->
+<!-- chore: cleanup unused imports and dead code [2026-01-20] -->
